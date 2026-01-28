@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Quick Quote | Prototype Vocal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f1f5f9; color: #0f172a; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.4); }
+        .tab-content { display: none; transition: all 0.3s ease; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .pulse-mic { animation: pulse 1.5s infinite; background: #ef4444 !important; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="min-h-screen pb-24">
+
+    <header class="p-6 flex justify-between items-center sticky top-0 z-40 bg-[#f1f5f9]/80 backdrop-blur-md">
+        <div>
+            <h1 class="text-xl font-extrabold tracking-tight text-slate-900">QUICK<span class="text-blue-600">QUOTE</span></h1>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Assistant Chantier IA</p>
+        </div>
+        <button onclick="toggleSettings()" class="p-3 rounded-2xl glass shadow-sm active:scale-90 transition-transform">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+    </header>
+
+    <main class="px-5">
+        
+        <section id="screen-dictation" class="tab-content active space-y-6">
+            <div class="flex gap-3">
+                <button class="flex-1 p-4 glass rounded-[1.8rem] flex flex-col items-center gap-2 active:scale-95 transition-all">
+                    <i data-lucide="user-plus" class="text-blue-600"></i>
+                    <span class="text-xs font-bold">Client</span>
+                </button>
+                <button class="flex-1 p-4 glass rounded-[1.8rem] flex flex-col items-center gap-2 active:scale-95 transition-all">
+                    <i data-lucide="copy" class="text-blue-600"></i>
+                    <span class="text-xs font-bold">Modèle</span>
+                </button>
+            </div>
+
+            <div class="glass rounded-[2.5rem] p-8 min-h-[300px] shadow-xl flex flex-col justify-between relative overflow-hidden">
+                <div id="transcript-container" class="space-y-4 overflow-y-auto max-h-[220px] no-scrollbar">
+                    <p id="transcript-text" class="text-lg text-slate-400 italic leading-relaxed">
+                        "Pose de 20m2 de parquet chêne, ajout de 5 plinthes assorties et dépose de l'ancien revêtement..."
+                    </p>
+                </div>
+                <div class="flex justify-between items-center mt-4">
+                    <span id="recording-status" class="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-slate-300"></span> Prêt à l'écoute
+                    </span>
+                    <button onclick="processAI()" class="bg-blue-600 text-white px-5 py-2 rounded-full text-xs font-bold shadow-lg flex items-center gap-2 active:scale-95 transition-all">
+                        <i data-lucide="sparkles" class="w-3 h-3"></i> ANALYSER
+                    </button>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold text-slate-500 uppercase px-2 tracking-widest">Résumé IA</h3>
+                <div id="quick-items-preview" class="space-y-2">
+                    </div>
+            </div>
+        </section>
+
+        <section id="screen-edit" class="tab-content space-y-6">
+            <div class="glass rounded-[2.2rem] p-6 shadow-xl border-white/60">
+                <div class="flex justify-between mb-8">
+                    <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl">Q</div>
+                    <div class="text-right">
+                        <h2 class="font-bold text-sm">DEVIS PRO #2026-042</h2>
+                        <p class="text-[10px] text-slate-400">Date : 28 Janvier 2026</p>
+                    </div>
+                </div>
+
+                <div id="edit-table" class="space-y-4">
+                    </div>
+
+                <div class="mt-8 pt-6 border-t border-slate-200 space-y-3">
+                    <div class="flex justify-between text-sm"><span class="text-slate-400">Total HT</span><span id="ht-total" class="font-bold">0,00 €</span></div>
+                    <div class="flex justify-between text-sm"><span class="text-slate-400">TVA (20%)</span><span id="tva-total" class="font-bold">0,00 €</span></div>
+                    <div class="flex justify-between text-xl font-black text-blue-600 italic uppercase italic"><span>Total TTC</span><span id="ttc-total">0,00 €</span></div>
+                </div>
+            </div>
+            
+            <button onclick="exportToPDF()" class="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-bold shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all">
+                <i data-lucide="send" class="w-5 h-5"></i> GÉNÉRER LE PDF
+            </button>
+        </section>
+
+        <section id="screen-catalog" class="tab-content space-y-6">
+            <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                <button class="px-5 py-2 bg-blue-600 text-white rounded-full text-xs font-bold shadow-md">Mes Favoris</button>
+                <button class="px-5 py-2 glass rounded-full text-xs font-bold">Leroy Merlin</button>
+                <button class="px-5 py-2 glass rounded-full text-xs font-bold">Casto</button>
+                <button class="px-5 py-2 glass rounded-full text-xs font-bold">Point.P</button>
+            </div>
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                <input type="text" placeholder="Rechercher un matériau..." class="w-full p-4 pl-12 glass rounded-2xl text-sm outline-none focus:ring-2 ring-blue-500/20 transition-all">
+            </div>
+            <div id="catalog-grid" class="grid grid-cols-1 gap-3">
+                </div>
+        </section>
+
+        <section id="screen-ged" class="tab-content space-y-4">
+            <h3 class="text-sm font-bold text-slate-500 uppercase px-2">Historique des devis</h3>
+            <div id="history-list" class="space-y-4">
+                </div>
+        </section>
+
+    </main>
+
+    <nav class="fixed bottom-0 inset-x-0 h-24 glass border-t border-white/50 flex items-center justify-around px-4 z-50">
+        <button onclick="switchTab('dictation')" class="nav-item flex flex-col items-center gap-1 text-slate-400" data-target="dictation">
+            <i data-lucide="mic" class="w-6 h-6"></i>
+            <span class="text-[9px] font-bold uppercase">Dictée</span>
+        </button>
+        <button onclick="switchTab('edit')" class="nav-item flex flex-col items-center gap-1 text-slate-400" data-target="edit">
+            <i data-lucide="file-edit" class="w-6 h-6"></i>
+            <span class="text-[9px] font-bold uppercase">Édition</span>
+        </button>
+
+        <div class="relative -top-6">
+            <button id="main-mic-btn" onclick="toggleRecording()" class="w-18 h-18 bg-blue-600 text-white p-5 rounded-full shadow-2xl transition-all active:scale-90 flex items-center justify-center border-4 border-[#f1f5f9]">
+                <i data-lucide="mic" id="mic-icon" class="w-8 h-8"></i>
+            </button>
+        </div>
+
+        <button onclick="switchTab('catalog')" class="nav-item flex flex-col items-center gap-1 text-slate-400" data-target="catalog">
+            <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+            <span class="text-[9px] font-bold uppercase">Produits</span>
+        </button>
+        <button onclick="switchTab('ged')" class="nav-item flex flex-col items-center gap-1 text-slate-400" data-target="ged">
+            <i data-lucide="archive" class="w-6 h-6"></i>
+            <span class="text-[9px] font-bold uppercase">GED</span>
+        </button>
+    </nav>
+
+    <div id="modal-settings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-6">
+        <div class="glass w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
+            <h2 class="text-xl font-bold italic">Configuration IA</h2>
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold uppercase text-slate-500">Clé API Gemini</label>
+                <input type="password" id="api-key" placeholder="••••••••••••" class="w-full p-4 rounded-2xl border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <button onclick="toggleSettings()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold">Enregistrer</button>
+        </div>
+    </div>
+
+    <script>
+        // -- INITIALISATION --
+        let isRecording = false;
+        let recognition;
+        let quoteItems = [];
+        const catalog = [
+            { id: 1, name: "Parquet Chêne Massif", price: 45.90, unit: "m2", brand: "Leroy Merlin" },
+            { id: 2, name: "Peinture Blanche Mat 10L", price: 89.00, unit: "pot", brand: "Castorama" },
+            { id: 3, name: "Sac de Ciment NF 35kg", price: 7.20, unit: "sac", brand: "Point.P" }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initSpeech();
+            renderCatalog();
+            renderHistory();
+            switchTab('dictation');
+        });
+
+        // -- NAVIGATION --
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(`screen-${tabId}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(n => {
+                n.classList.remove('text-blue-600');
+                if(n.dataset.target === tabId) n.classList.add('text-blue-600');
+            });
+        }
+
+        // -- RECONNAISSANCE VOCALE --
+        function initSpeech() {
+            window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (window.SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'fr-FR';
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = (e) => {
+                    const text = Array.from(e.results).map(r => r[0].transcript).join('');
+                    document.getElementById('transcript-text').innerText = text;
+                    document.getElementById('transcript-text').classList.remove('text-slate-400');
+                    document.getElementById('transcript-text').classList.add('text-slate-900');
+                };
+            }
+        }
+
+        function toggleRecording() {
+            const btn = document.getElementById('main-mic-btn');
+            const icon = document.getElementById('mic-icon');
+            const status = document.getElementById('recording-status');
+
+            if (!isRecording) {
+                recognition?.start();
+                btn.classList.add('pulse-mic');
+                status.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> ÉCOUTE EN COURS...`;
+            } else {
+                recognition?.stop();
+                btn.classList.remove('pulse-mic');
+                status.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500"></span> DICTÉE TERMINÉE`;
+            }
+            isRecording = !isRecording;
+        }
+
+        // -- SMARTFILL IA --
+        function processAI() {
+            // Simulation d'extraction JSON par Gemini
+            const mockExtracted = [
+                { desc: "Pose parquet chêne massif", qty: 20, price: 45.90, est: false },
+                { desc: "Plinthes assorties", qty: 5, price: 12.00, est: true },
+                { desc: "Dépose ancien sol", qty: 1, price: 150.00, est: false }
+            ];
+            
+            quoteItems = mockExtracted;
+            renderPreview();
+            renderEditTable();
+            switchTab('edit');
+            
+            // Haptic Visual Feedback
+            window.navigator.vibrate?.(50);
+        }
+
+        function renderPreview() {
+            const container = document.getElementById('quick-items-preview');
+            container.innerHTML = quoteItems.map(item => `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center animate-fadeIn">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold">${item.desc}</span>
+                        <span class="text-[10px] text-slate-400">Qté: ${item.qty}</span>
+                    </div>
+                    <div class="text-right flex flex-col items-end">
+                        <span class="font-bold text-sm">${item.price}€</span>
+                        ${item.est ? '<span class="text-[8px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full font-bold">ESTIMÉ</span>' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderEditTable() {
+            const container = document.getElementById('edit-table');
+            container.innerHTML = quoteItems.map((item, index) => `
+                <div class="grid grid-cols-12 gap-3 items-center border-b border-slate-100 pb-3">
+                    <div class="col-span-7">
+                        <input type="text" value="${item.desc}" onchange="updateItem(${index}, 'desc', this.value)" class="w-full bg-transparent text-xs font-bold outline-none">
+                    </div>
+                    <div class="col-span-2">
+                        <input type="number" value="${item.qty}" onchange="updateItem(${index}, 'qty', this.value)" class="w-full bg-slate-100/50 rounded-lg p-1 text-center text-xs outline-none">
+                    </div>
+                    <div class="col-span-3">
+                        <input type="number" value="${item.price}" onchange="updateItem(${index}, 'price', this.value)" class="w-full bg-transparent text-right text-xs font-black outline-none">
+                    </div>
+                </div>
+            `).join('');
+            calculateTotals();
+        }
+
+        function updateItem(idx, key, val) {
+            quoteItems[idx][key] = key === 'desc' ? val : parseFloat(val);
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            const ht = quoteItems.reduce((acc, curr) => acc + (curr.qty * curr.price), 0);
+            const tva = ht * 0.20;
+            const ttc = ht + tva;
+            
+            document.getElementById('ht-total').innerText = ht.toFixed(2) + " €";
+            document.getElementById('tva-total').innerText = tva.toFixed(2) + " €";
+            document.getElementById('ttc-total').innerText = ttc.toFixed(2) + " €";
+        }
+
+        // -- CATALOGUE & GED --
+        function renderCatalog() {
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = catalog.map(p => `
+                <div class="glass p-5 rounded-[2rem] flex justify-between items-center shadow-sm">
+                    <div>
+                        <p class="text-[10px] font-bold text-blue-600 uppercase">${p.brand}</p>
+                        <h4 class="font-bold text-sm">${p.name}</h4>
+                        <p class="text-xs text-slate-400">${p.price}€ / ${p.unit}</p>
+                    </div>
+                    <button class="p-3 glass rounded-full text-red-500 active:scale-90 transition-all">
+                        <i data-lucide="heart" class="w-4 h-4 fill-current"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderHistory() {
+            const history = JSON.parse(localStorage.getItem('qq_history')) || [
+                { id: 101, client: "M. Martin", date: "24/01/2026", total: "1450.00", status: "Validé" },
+                { id: 102, client: "Mme Durand", date: "20/01/2026", total: "420.50", status: "En attente" }
+            ];
+            const list = document.getElementById('history-list');
+            list.innerHTML = history.map(h => `
+                <div class="glass p-5 rounded-[2.2rem] flex flex-col gap-4 shadow-sm border-l-4 ${h.status === 'Validé' ? 'border-green-500' : 'border-amber-500'}">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-black text-slate-800">${h.client}</h4>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter italic">Devis #${h.id} • ${h.date}</p>
+                        </div>
+                        <span class="text-[8px] font-black px-2 py-1 rounded-md bg-slate-900 text-white uppercase">${h.status}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-black text-blue-600">${h.total} €</span>
+                        <div class="flex gap-2">
+                            <button class="p-2 glass rounded-full"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                            <button class="p-2 glass rounded-full text-blue-600"><i data-lucide="share-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // -- EXPORT PDF --
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("DEVIS QUICK QUOTE", 10, 20);
+            
+            const tableData = quoteItems.map(i => [i.desc, i.qty, i.price.toFixed(2) + "€", (i.qty * i.price).toFixed(2) + "€"]);
+            
+            doc.autoTable({
+                startY: 30,
+                head: [['Désignation', 'Quantité', 'Prix Unitaire HT', 'Total HT']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            doc.save("devis_quickquote.pdf");
+        }
+
+        function toggleSettings() {
+            document.getElementById('modal-settings').classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>
